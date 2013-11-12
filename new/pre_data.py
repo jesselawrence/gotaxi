@@ -50,7 +50,7 @@ for i in range(0,len(a)):
     width = amaxx - aminx + 1
     for j in range(0,width) :
         for k in range(0,height) :
-            nowid = startid + height * j + k
+            nowid = startid + numy * j + k
             #print nowid
             b[nowid].append(i)
 

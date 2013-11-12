@@ -39,11 +39,16 @@ class gpsRecord:
         self.speed = eval(record[6])
         self.jiaodu = eval(record[7])
         self.state = eval(record[8])
+        self.candiate = []
+        self.rdIndex = []
         self.__rindex__(roadindex)
         self.__toroad__(road)
 
     def display_full(self):
         print "%s %s %s %s %s %s %s %s %s" % (self.carid,self.time,self.event,self.state_run,self.x,self.y,self.speed,self.jiaodu,self.state)
+    
+    def display_id (self):
+        return self.carid
     
     def display_result(self):
         self.candiate.sort()
@@ -51,7 +56,9 @@ class gpsRecord:
         print "%s %s %s" % (self.carid, self.time, self.road)
 
     def distance_other (self, otherx, othery):
-        dis_self_other = sqrt((self.x - otherx)*(self.x - otherx) + (self.y - othery)*(self.y - othery))
+        x1 = self.x - otherx
+        x2 = self.y - othery
+        dis_self_other = sqrt(x1 * x1 + x2 * x2)
         return dis_self_other
 
     def __rindex__(self,roadindex):
@@ -62,9 +69,9 @@ class gpsRecord:
         ax = int((self.x - minx)/ huafen)
         ay = int((self.y - miny)/ huafen)
         re_id = ax * numy + ay
-        print re_id
         self.rdIndex =  roadindex[re_id]
-    
+   
+   #find the min distance point in a road array
     def __toroad__ (self,road):
         for j in self.rdIndex:
             mindis = 999
@@ -72,16 +79,22 @@ class gpsRecord:
             rtx = 0.0
             rty = 0.0
             for i in range(0, le):
-                tmpx, tmpy = touying(self.x, self.y, road['S'][j]['X'][0][0][i],\
+                [tmpx, tmpy] = touying(self.x, self.y, road['S'][j]['X'][0][0][i],\
                     road['S'][j]['Y'][0][0][i], road['S'][j]['X'][0][0][i+1],\
                     road['S'][j]['Y'][0][0][i+1])
+
                 tmpdis = self.distance_other(tmpx, tmpy)
+
                 if tmpdis < mindis:
                     mindis = tmpdis
                     rtx = tmpx
                     rty = tmpy
+            
+
             pointmin = [0.0,mindis,j,rtx,rty]
-            self.candiate.append(pointmin)
+            if self.candiate.count(pointmin) == 0:
+                self.candiate.append(pointmin)
+
         self.candiate.sort()
         self.candiate = self.candiate[0:5]
     
@@ -93,8 +106,8 @@ class gpsRecord:
                     gps1.candiate[i][3],gps1.candiate[i][4],gps1.time,gps1.speed,gps1.jiaodu)
 
             for j in range(0,can_len_self):
-                gps1.candiate[i][0] += vote(self.candiate[j][3],self.candiate[j][4],self.time,self.speed,self.jiaodu,\
-                        gps1.candiate[i][3],gps1.candiate[i][4],gps1.time,gps1.speed,gps1.jiaodu)
+                gps1.candiate[i][0] += vote(self.candiate[j][3], self.candiate[j][4], self.time,self.speed, self.jiaodu,\
+                        gps1.candiate[i][3] ,gps1.candiate[i][4], gps1.time, gps1.speed, gps1.jiaodu)
 
 
 
@@ -125,20 +138,27 @@ def roadIndex (x,y,rd_index):
 
 
 def touying(x,y,x1,y1,x2,y2):
-	theta = 0.000000005
-	area = ((x1 - x) * (y2 - y) - (x2 - x) * (y1 - y)) / 2
-	if area <= theta and area >= -theta:
-		return [x, y]
-
-	f = (x2 - x1)*(x - x1) + (y2 - y1)*(y - y1)
-	if f < 0:
+    global f
+    area = ((x1 - x) * (y2 - y) - (x2 - x) * (y1 - y)) / 2
+    if area < 5e-9 and area > -5e-9:
+        f = (x2 - x1) * (x - x1) + (y2 - y1) * (y - y1)
+        d = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+        f = f / d
+        xt = x1 + f * (x2 - x1)
+        yt = y1 + f * (y2 - y1)
+        return [xt, yt]
+	
+    f = (x2 - x1)*(x - x1) + (y2 - y1)*(y - y1)	
+    if f < 0:
 		return [x1, y1]
-	d = (x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1)
-	if f > d:
-		return [x2, y2]
+    d = (x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1)
+    if f > d:
+        return [x2, y2]
 
-	f = f/d
-	return [x1 + f *(x2 - x1), y1 + f * (y2 - y1)]
+    f = f/d
+    xt = x1 + f * (x2 - x1)
+    yt = y1 + f * (y2 - y1)
+    return [xt, yt]
 
 def vote(x1,y1,time1,speed1,jiaodu1,x2,y2,time2,speed2,jiaodu2):
     huansuan = 0.0000036886

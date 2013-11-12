@@ -6,12 +6,28 @@ import road
 
 data = sys.stdin
 
-b = []
+
 
 if __name__ == '__main__':
+    nowid = ''
     for i in data:
         a = taxi.gpsRecord(i,road.road_index,road.road_data)
-        b.append(a)
-        #a.display_full()
-        print a.candiate
+        
+        if nowid = '':
+            b = []
+            nowid == a.carid
+            b.append(a)
+            continue
 
+        if a.carid != nowid:
+            nowid = a.carid
+            lenb = len(b)
+            if lenb > 3:
+                
+
+
+
+            b = []
+            
+        b.append(a)
+        
