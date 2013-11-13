@@ -9,7 +9,7 @@ for i in gps_data:
         i = i.strip()
         i = i.split(',')
         temp = eval(i[4])
-        if temp == 0:
+        if temp == 0 or eval(i[5]) == 0:
             continue
         swap_temp = i[1] 
         i[1] = i[3]
