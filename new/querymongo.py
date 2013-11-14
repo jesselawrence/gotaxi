@@ -3,7 +3,7 @@ from pymongo import MongoClient
 import pymongo
 
 global client
-client = MongoClient('172.16.20.202', 27017)
+client = MongoClient('192.168.1.2', 27017)
 global db
 db = client.gisdb
 global collection

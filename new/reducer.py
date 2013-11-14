@@ -56,8 +56,11 @@ if __name__ == '__main__':
                 b[j].vote2other(b[j+3])
             for j in b:
                 j.gen_result()
-                if c.count(j.result) == 0:
-                    c.append(j.result)
+                try:
+                    if c.count(j.result) == 0:
+                        c.append(j.result)
+                except:
+                    continue
             for j in c:
                 print j
             b = []
@@ -104,8 +107,11 @@ if __name__ == '__main__':
 
     for j in b:
         j.gen_result()
-        if c.count(j.result) == 0:
-            c.append(j.result)
+        try:
+            if c.count(j.result) == 0:
+                c.append(j.result)
+        except:
+            continue
     for j in c:
         print j
     
