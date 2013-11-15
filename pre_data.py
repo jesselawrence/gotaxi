@@ -2,41 +2,79 @@
 #-*- coding:utf-8 -*-
 
 a = []
-data = open('road1.txt','r')
+data = open('index.txt','r')
+
+huafen = 0.005
+
 for i in data:
     i = i.strip()
     a.append(eval(i))
 
-minx = 999.0
-miny = 999.0
-maxx = 0.0
-maxy = 0.0
+minx = 115.375
+miny = 39.41667
+maxx = 117.5
+maxy = 41.083333
 
 
-for i in range(0,len(a)):
-    if a[i][1] < minx and a[i][1] != 0:
-        minx = a[i][1]
-    if a[i][2] < miny and a[i][2] != 0:
-        miny = a[i][2]
-    if a[i][3] > maxx:
-        maxx = a[i][3]
-    if a[i][4] > maxy:
-        maxy = a[i][4]
 
 disx = maxx - minx
 disy = maxy - miny
 
-numx = int(disx/0.001)
-numy = int(disy/0.001)
+numx = int(disx/huafen)
+numy = int(disy/huafen)
 
-num = numx*numy
+num = (numx + 1)* (1 + numy)
 
 b = []
+#c = []
 
-for i in range(0, num):
+#for i in range(0, len(a)):
+#    c.append(0)
+print num
+
+for i in range(0, num + 1):
     b.append([])
-
-
+'''
 print numx
 print numy
-#for i in x
+'''
+tempid = 0
+
+for i in range(0,len(a)):
+    aminx = int ((a[i][1] - minx)/huafen)
+    aminy = int ((a[i][2] - miny)/huafen) 
+    amaxx = int ((a[i][3] - minx)/huafen)
+    amaxy = int ((a[i][4] - miny)/huafen)
+    startid = aminx * numy + aminy
+    height = amaxy - aminy + 1
+    width = amaxx - aminx + 1
+    for j in range(0,width) :
+        for k in range(0,height) :
+            nowid = startid + height * j + k
+            #print nowid
+            b[nowid].append(i)
+
+
+c = open('index','w')
+for i in b:
+    c.write(repr(i)+'\n')
+
+c.close()
+data.close()
+del a
+'''            
+    if i[0] == 9998:
+        tempid = i[0]
+        print "%s %s %s %s %s %s" % (i[0], aminx, aminy, startid, height,width)
+
+test case
+for i in range(0,len(b)):
+        for j in b[i]:
+            c[j - 1] =c[j - 1] + 1
+            if j == tempid:
+                print "%s %s" % (i, b[i])
+
+for i in range(0, len(c)):
+    if c[i] == 10:
+        print i
+'''

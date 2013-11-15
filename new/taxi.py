@@ -8,7 +8,7 @@ from math import pi as M_PI
 from math import fabs as fabs
 from math import exp as exp
 import time,datetime
-
+import querymongo
 
 #Example data = [...\n]
 #for i in data:
@@ -27,22 +27,25 @@ class gpsRecord:
     road = 0
     rdIndex = []
     candiate = []
-    def __init__ (self, record,roadindex,road):
+    def __init__ (self, record):
         record = record.strip()
         record = record.split(',')
-        self.carid = record[0]
-        self.time = record[1]
-        self.event = record[2]
-        self.state_run = record[3]
-        self.x = eval(record[4])
-        self.y = eval(record[5])
-        self.speed = eval(record[6])
-        self.jiaodu = eval(record[7])
-        self.state = eval(record[8])
-        self.candiate = []
-        self.rdIndex = []
-        self.__rindex__(roadindex)
-        self.__toroad__(road)
+        self.leen = len(record)
+        if self.leen != 9 or eval(record[4]) == 0 or eval(record[5]) == 0:
+            pass
+        else:
+            self.carid = record[0]
+            self.time = record[1]
+            self.event = record[2]
+            self.state_run = record[3]
+            self.x = eval(record[4])
+            self.y = eval(record[5])
+            self.speed = eval(record[6])
+            self.jiaodu = eval(record[7])
+            self.state = eval(record[8])
+            self.candiate = []
+            self.roadset = querymongo.road_set(self.x,self.y)
+            self.__toroad__()
 
     def display_full(self):
         print "%s %s %s %s %s %s %s %s %s" % (self.carid,self.time,self.event,self.state_run,self.x,self.y,self.speed,self.jiaodu,self.state)
@@ -89,33 +92,29 @@ class gpsRecord:
         self.rdIndex =  roadindex[re_id]
    
    #find the min distance point in a road array
-    def __toroad__ (self,road):
-        for j in self.rdIndex:
-            mindis = 999
-            le = len(road['S'][j]['X'][0][0]) - 2
-            rtx = 0.0
-            rty = 0.0
-            for i in range(0, le):
-                [tmpx, tmpy] = self.__touying__(self.x, self.y, road['S'][j]['X'][0][0][i],\
-                    road['S'][j]['Y'][0][0][i], road['S'][j]['X'][0][0][i+1],\
-                    road['S'][j]['Y'][0][0][i+1])
-
+    def __toroad__ (self):
+        for i in self.roadset.roadsets:
+            mindis = 999.0
+            xlenth = len(i['geom']['coordinates'])
+            reall = xlenth - 1
+            for j in range(0, reall):
+                [tmpx, tmpy ] = self.__touying__(self.x, self.y, i['geom']['coordinates'][j][0], i['geom']['coordinates'][j][1],\
+                        i['geom']['coordinates'][j+1][0], i['geom']['coordinates'][j+1][1])
                 tmpdis = self.distance_other(tmpx, tmpy)
-
                 if tmpdis < mindis:
                     mindis = tmpdis
                     rtx = tmpx
                     rty = tmpy
-            
 
-            pointmin = [0.0,mindis,j,rtx,rty]
-            if self.candiate.count(pointmin) == 0:
-                self.candiate.append(pointmin)
+            pointmin = [0.0, mindis,i['ID'], rtx, rty]
+            self.candiate.append(pointmin)
 
+        #print self.candiate
         self.candiate.sort()
         self.candiate = self.candiate[0:5]
+        #print self.candiate
     
-    def vote2other(self,gps1,road):
+    def vote2other(self,gps1):
         can_len = len(gps1.candiate)
         can_len_self = len(self.candiate)
         for i in range(0,can_len):
@@ -127,12 +126,12 @@ class gpsRecord:
                 idequal = 1
                 if (gps1.candiate[i][2] == self.candiate[j][2]):
                     idequal = 1.7
-                elif (gps1.candiate[i][2] != self.candiate[j][2] and gps1.time > self.time):
-                    if road['S'][gps1.candiate[i][2]]['SNODEID'][0][0] == road['S'][self.candiate[j][2]]['ENODEID'][0][0]:
+                else:
+                    if gps1.roadset.idSearch(gps1.candiate[i][2])['SNODEID'] == self.roadset.idSearch(self.candiate[j][2])['ENODEID']:
                         idequal = 1.5
-                elif (gps1.candiate[i][2] != self.candiate[j][2] and gps1.time < self.time):
-                    if road['S'][gps1.candiate[i][2]]['ENODEID'][0][0] == road['S'][self.candiate[j][2]]['ENODEID'][0][0]:
+                    if gps1.roadset.idSearch(gps1.candiate[i][2])['ENODEID'] == self.roadset.idSearch(self.candiate[j][2])['SNODEID']:
                         idequal = 1.5
+                        
                 gps1.candiate[i][0] += self.__vote__(self.candiate[j][3], self.candiate[j][4], self.time,self.speed, self.jiaodu,\
                         gps1.candiate[i][3] ,gps1.candiate[i][4], gps1.time, gps1.speed, gps1.jiaodu) * idequal
 
