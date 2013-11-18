@@ -2,21 +2,28 @@ import sys
 from pymongo import MongoClient
 import pymongo
 
+global client
+client = MongoClient('192.168.1.4', 27017)
+global client
+db = client.gisdb
+global client
+collection = db.xqpoint
+
 
 class road_set:
     
 
     def __init__(self, x, y):
-        self.client = MongoClient('172.16.20.200', 27017)
-        self.db = self.client.gisdb
-        self.collection = self.db.xqpoint
-        self.roadsets = []
-        self.__query__(x, y)
-        self.client.disconnect()
+        try:
+            self.roadsets = []
+            self.__query__(x, y)
+            self.success = 1
+        except:
+            self.success = 0
 
 
     def __query__(self, x, y):
-        self.cursor = self.collection.find({"geom.coordinates":{"$geoWithin":{ "$center" : [[x,y], 0.004]}}})
+        self.cursor = collection.find({"geom.coordinates":{"$geoWithin":{ "$center" : [[x,y], 0.004]}}})
         len_cursor = self.cursor.count()
         for i in range(0,len_cursor):
             self.roadsets.append(self.cursor.next())

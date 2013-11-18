@@ -8,7 +8,6 @@ from math import pi as M_PI
 from math import fabs as fabs
 from math import exp as exp
 import time,datetime
-import querymongo
 
 #Example data = [...\n]
 #for i in data:
@@ -25,14 +24,21 @@ class gpsRecord:
     jiaodu = 0
     state = 0
     road = 0
-    rdIndex = []
     candiate = []
-    def __init__ (self, record):
+    vote = [0,0,0,0]
+    def __init__ (self, record, conn):
         record = record.strip()
         record = record.split(',')
         self.leen = len(record)
-        if self.leen != 9 or eval(record[4]) == 0 or eval(record[5]) == 0:
-            pass
+        if self.leen != 9 :
+            self.success = 0
+            return None
+        if eval(record[4]) == 0 :
+            self.success = 0
+            return None
+        if eval(record[5]) == 0 :
+            self.success = 0
+            return None
         else:
             self.carid = record[0]
             self.time = record[1]
@@ -44,8 +50,15 @@ class gpsRecord:
             self.jiaodu = eval(record[7])
             self.state = eval(record[8])
             self.candiate = []
-            self.roadset = querymongo.road_set(self.x,self.y)
-            self.__toroad__()
+            self.vote = [0,0,0,0]
+            self.roadset = conn.road_set(self.x,self.y)
+            if self.roadset.success == 1:
+                self.success = 1
+                self.__toroad__()
+                return None
+            else:
+                self.success = 0
+                return None
 
     def display_full(self):
         print "%s %s %s %s %s %s %s %s %s" % (self.carid,self.time,self.event,self.state_run,self.x,self.y,self.speed,self.jiaodu,self.state)
@@ -70,7 +83,8 @@ class gpsRecord:
                     maxid = mi
         if milen != 0:
             self.road = self.candiate[maxid]
-            self.result = "%s %s %s %s" % (self.carid, self.time[0:12]+'00', self.road[2], self.event)
+            self.result = "%s %s %s %s" % (self.road[2], self.time[0:12]+'00', self.carid, self.event)
+        
 
     def display_result(self):
         print self.result
@@ -80,16 +94,6 @@ class gpsRecord:
         x2 = self.y - othery
         dis_self_other = sqrt(x1 * x1 + x2 * x2)
         return dis_self_other
-
-    def __rindex__(self,roadindex):
-        huafen = 0.005
-        minx = 115.375
-        miny = 39.416667
-        numy = 333
-        ax = int((self.x - minx)/ huafen)
-        ay = int((self.y - miny)/ huafen)
-        re_id = ax * numy + ay
-        self.rdIndex =  roadindex[re_id]
    
    #find the min distance point in a road array
     def __toroad__ (self):
@@ -114,26 +118,39 @@ class gpsRecord:
         self.candiate = self.candiate[0:5]
         #print self.candiate
     
-    def vote2other(self,gps1):
-        can_len = len(gps1.candiate)
-        can_len_self = len(self.candiate)
-        for i in range(0,can_len):
-            idequal = 1.5
-            gps1.candiate[i][0] += self.__vote__(self.x,self.y,self.time,self.speed,self.jiaodu,\
-                    gps1.candiate[i][3],gps1.candiate[i][4],gps1.time,gps1.speed,gps1.jiaodu) * idequal
+    def vote2other(self,gps1, wei):
+        if gps1 == None:
+            return 0
 
-            for j in range(0,can_len_self):
-                idequal = 1
-                if (gps1.candiate[i][2] == self.candiate[j][2]):
-                    idequal = 1.7
-                else:
-                    if gps1.roadset.idSearch(gps1.candiate[i][2])['SNODEID'] == self.roadset.idSearch(self.candiate[j][2])['ENODEID']:
-                        idequal = 1.5
-                    if gps1.roadset.idSearch(gps1.candiate[i][2])['ENODEID'] == self.roadset.idSearch(self.candiate[j][2])['SNODEID']:
-                        idequal = 1.5
+        elif gps1.vote[wei] == 1:
+            return 0
+
+        elif self.carid != gps1.carid:
+            gps1.vote[wei] = 1
+            return 0
+
+        else:
+            can_len = len(gps1.candiate)
+            can_len_self = len(self.candiate)
+            for i in range(0,can_len):
+                idequal = 1.5
+                gps1.candiate[i][0] += self.__vote__(self.x,self.y,self.time,self.speed,self.jiaodu,\
+                        gps1.candiate[i][3],gps1.candiate[i][4],gps1.time,gps1.speed,gps1.jiaodu) * idequal
+
+                for j in range(0,can_len_self):
+                    idequal = 1
+                    if (gps1.candiate[i][2] == self.candiate[j][2]):
+                        idequal = 1.7
+                    else:
+                        if gps1.roadset.idSearch(gps1.candiate[i][2])['SNODEID'] == self.roadset.idSearch(self.candiate[j][2])['ENODEID']:
+                            idequal = 1.5
+                        if gps1.roadset.idSearch(gps1.candiate[i][2])['ENODEID'] == self.roadset.idSearch(self.candiate[j][2])['SNODEID']:
+                            idequal = 1.5
                         
-                gps1.candiate[i][0] += self.__vote__(self.candiate[j][3], self.candiate[j][4], self.time,self.speed, self.jiaodu,\
-                        gps1.candiate[i][3] ,gps1.candiate[i][4], gps1.time, gps1.speed, gps1.jiaodu) * idequal
+                    gps1.candiate[i][0] += self.__vote__(self.candiate[j][3], self.candiate[j][4], self.time,self.speed, self.jiaodu,\
+                            gps1.candiate[i][3] ,gps1.candiate[i][4], gps1.time, gps1.speed, gps1.jiaodu) * idequal
+                
+            gps1.vote[wei] = 1
 
 
     def __vote__(self,x1,y1,time1,speed1,jiaodu1,x2,y2,time2,speed2,jiaodu2):
