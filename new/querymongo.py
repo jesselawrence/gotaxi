@@ -4,9 +4,9 @@ import pymongo
 
 global client
 client = MongoClient('192.168.1.4', 27017)
-global client
+global db
 db = client.gisdb
-global client
+global collection
 collection = db.xqpoint
 
 
